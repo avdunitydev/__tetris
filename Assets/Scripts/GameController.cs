@@ -22,19 +22,22 @@ namespace Tetris
 
         int[,] m_Matrix;
 
-        GameObject[,] m_Blocks;
+        GameObject[,] m_GameBlocks;
 
         GlassSize glass = new GlassSize(10, 26);
 
-        void FillBlocksMatrix()
+        float m_Timer = 6f;
+        private float m_speed = 20f;
+
+        void FillMatrixWithGameblocks()
         {
-            m_Blocks = new GameObject[glass.m_Row, glass.m_Column];
+            m_GameBlocks = new GameObject[glass.m_Row, glass.m_Column];
             for (int r = 0; r < glass.m_Row; r++)
             {
                 for (int c = 0; c < glass.m_Column; c++)
                 {
-                    m_Blocks[r, c] = GameObject.Instantiate(m_BlockPrefab);
-                    m_Blocks[r, c].transform.position = new Vector3(c, glass.m_Row - 1 - r, 0);
+                    m_GameBlocks[r, c] = GameObject.Instantiate(m_BlockPrefab);
+                    m_GameBlocks[r, c].transform.position = new Vector3(c, glass.m_Row - 1 - r, 0);
                 }
             }
         }
@@ -57,8 +60,10 @@ namespace Tetris
             {
                 for (int c = 0; c < glass.m_Column; c++)
                 {
+                    if (m_Matrix[r, c] == 1) m_GameBlocks[r, c].gameObject.GetComponent<SpriteRenderer>().color = Color.white;
+
                     bool flag = (m_Matrix[r, c] > 0) ? true : false;
-                    m_Blocks[r, c].gameObject.SetActive(flag);
+                    m_GameBlocks[r, c].gameObject.SetActive(flag);
                 }
             }
         }
@@ -70,12 +75,12 @@ namespace Tetris
                 for (int c = 0; c < glass.m_Column; c++)
                 {
                     m_Matrix[r, c] = (m_Matrix[r, c] > 0) ? 2 : 0;
-                    m_Blocks[r, c].gameObject.GetComponent<SpriteRenderer>().color = Color.red;
+                    m_GameBlocks[r, c].gameObject.GetComponent<SpriteRenderer>().color = Color.red;
 
                 }
             }
 
-
+            CreateBlock();
         }
 
 
@@ -121,41 +126,75 @@ namespace Tetris
             m_Matrix = tmp;
         }
 
-
-        void startF()
+        private void MoveLeft()
         {
-            m_Matrix[0, 2] = 1;
-            m_Matrix[0, 3] = 1;
-            m_Matrix[0, 4] = 1;
-            m_Matrix[1, 3] = 1;
-            // m_Matrix[21, 1] = 1;
-            // m_Matrix[22, 1] = 1;
-            // m_Matrix[23, 1] = 1;
-            // m_Matrix[24, 1] = 1;
-            // m_Matrix[24, 4] = 1;
-            // m_Matrix[24, 5] = 1;
-            // m_Matrix[24, 6] = 1;
-            // m_Matrix[24, 7] = 1;
+            throw new NotImplementedException();
+        }
+
+        private void MoveRight()
+        {
+            throw new NotImplementedException();
+        }
+
+        void CreateBlock()
+        {
+            int offsetPosition = 4;
+            Block block = new Block();
+            int l = block.m_BlockMatrix.GetLength(0);
+
+            if(l < 4)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    for (int j = 0; j < 4; j++)
+                    {
+                        m_Matrix[i, j + offsetPosition] = 0;
+                    }
+                }
+            }
+
+            for (int i = 0; i < l; i++)
+            {
+                for (int j = 0; j < l; j++)
+                {
+                    m_Matrix[i, j + offsetPosition] = block.m_BlockMatrix[i, j];
+                }
+            }
 
         }
+
 
         void Start()
         {
             InitMatrix();
-            FillBlocksMatrix();
+            FillMatrixWithGameblocks();
 
-            startF();
+            CreateBlock();
         }
 
         void Update()
         {
-
-            if (Input.GetKeyDown("down"))
+            if (m_Timer > 0)
             {
-                MoveDown();
+                m_Timer -= Time.deltaTime * m_speed;
             }
+            else
+            {
+                //MoveDown();
+                m_Timer = 10f;
+            }
+
+            if (Input.GetKeyDown(KeyCode.B)) CreateBlock();
+
+            if (Input.GetKeyDown(KeyCode.DownArrow)) for (int i = 0; i < 1; i++) MoveDown();
+
+            if (Input.GetKeyDown(KeyCode.RightArrow)) MoveRight();
+
+            if (Input.GetKeyDown(KeyCode.LeftArrow)) MoveLeft();
 
             Draw();
         }
+
+
     }
 }
