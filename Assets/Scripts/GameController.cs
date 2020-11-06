@@ -1,200 +1,76 @@
-﻿using UnityEngine;
-using System.Collections;
-using System;
+﻿using System.Threading;
+using UnityEngine;
 
-namespace Tetris
+namespace AVDTetris
 {
-    struct GlassSize
-    {
-        public int m_Column { get; private set; }
-        public int m_Row { get; private set; }
-
-        public GlassSize(int colstColumns, int colstRows)
-        {
-            this.m_Column = colstColumns;
-            this.m_Row = colstRows;
-        }
-    }
-
     public class GameController : MonoBehaviour
     {
-        public GameObject m_BlockPrefab;
+        //Public Members
+        public GameObject m_PrefabElement;
 
-        int[,] m_Matrix;
+        //Local Members
+        GameObject[,] m_Glass;
 
-        GameObject[,] m_GameBlocks;
-
-        GlassSize glass = new GlassSize(10, 26);
-
-        float m_Timer = 6f;
-        private float m_speed = 20f;
-
-        void FillMatrixWithGameblocks()
+        private BaseBlock NextBlock
         {
-            m_GameBlocks = new GameObject[glass.m_Row, glass.m_Column];
-            for (int r = 0; r < glass.m_Row; r++)
-            {
-                for (int c = 0; c < glass.m_Column; c++)
-                {
-                    m_GameBlocks[r, c] = GameObject.Instantiate(m_BlockPrefab);
-                    m_GameBlocks[r, c].transform.position = new Vector3(c, glass.m_Row - 1 - r, 0);
-                }
-            }
+            get;
+            set;
+        }
+        BaseBlock m_currentBlock;
+        GameObject m_blockWrapper;
+        int m_gameSpeed;
+        float m_counter;
+
+
+        float GlobalTimer() => Time.deltaTime * m_gameSpeed;
+
+        private void InitGame()
+        {
+            m_Glass = new GameObject[10, 26];
+            m_gameSpeed = 2;
+            m_counter = 0;
+            NextBlock = BlocksFactory.CreateBlock(m_PrefabElement);
+
         }
 
-        private void InitMatrix()
+        private void InstansBlock()
         {
-            m_Matrix = new int[glass.m_Row, glass.m_Column];
-            for (int r = 0; r < glass.m_Row; r++)
-            {
-                for (int c = 0; c < glass.m_Column; c++)
-                {
-                    m_Matrix[r, c] = 0;
-                }
-            }
-        }
+            m_currentBlock = NextBlock;
 
-        void Draw()
-        {
-            for (int r = 0; r < glass.m_Row; r++)
-            {
-                for (int c = 0; c < glass.m_Column; c++)
-                {
-                    if (m_Matrix[r, c] == 1) m_GameBlocks[r, c].gameObject.GetComponent<SpriteRenderer>().color = Color.white;
+            m_blockWrapper = new GameObject { name = "Block" };
 
-                    bool flag = (m_Matrix[r, c] > 0) ? true : false;
-                    m_GameBlocks[r, c].gameObject.SetActive(flag);
-                }
-            }
-        }
+            m_currentBlock.SetBlockParent(m_blockWrapper.transform);
 
-        void Replace()
-        {
-            for (int r = 0; r < glass.m_Row; r++)
-            {
-                for (int c = 0; c < glass.m_Column; c++)
-                {
-                    m_Matrix[r, c] = (m_Matrix[r, c] > 0) ? 2 : 0;
-                    m_GameBlocks[r, c].gameObject.GetComponent<SpriteRenderer>().color = Color.red;
+            GameObject[,] block = m_currentBlock.GetBlock();
+            m_currentBlock.GetBlockPivot(out float x, out float y);
+            m_blockWrapper.transform.position = new Vector3(-x, -y + (m_Glass.Length / m_Glass.GetLength(0)) - 2, 0);
 
-                }
-            }
+            NextBlock = BlocksFactory.CreateBlock(m_PrefabElement);
 
-            CreateBlock();
+
         }
 
 
-        void MoveDown()
-        {
-            int end_row = m_Matrix.GetLength(0) - 1;
-            int[,] tmp = new int[glass.m_Row, glass.m_Column];
-
-            for (int r = end_row; r >= 0; r--)
-            {
-                for (int c = 0; c < glass.m_Column; c++)
-                {
-                    if (r > 0)
-                    {
-                        if (m_Matrix[r, c] == 2 && m_Matrix[r - 1, c] == 1)
-                        {
-                            Replace();
-                            return;
-                        }
-                    }
-
-                    if (r == end_row && m_Matrix[r, c] == 1)
-                    {
-                        Replace();
-                        return;
-                    }
-
-                    if (r < end_row)
-                    {
-                        if (m_Matrix[r, c] == 1)
-                        {
-                            tmp[r + 1, c] = 1;
-                        }
-                    }
-
-                    if (m_Matrix[r, c] == 2)
-                    {
-                        tmp[r, c] = m_Matrix[r, c];
-                    }
-
-                }
-            }
-            m_Matrix = tmp;
-        }
-
-        private void MoveLeft()
-        {
-            throw new NotImplementedException();
-        }
-
-        private void MoveRight()
-        {
-            throw new NotImplementedException();
-        }
-
-        void CreateBlock()
-        {
-            int offsetPosition = 4;
-            Block block = new Block();
-            int l = block.m_BlockMatrix.GetLength(0);
-
-            if(l < 4)
-            {
-                for (int i = 0; i < 4; i++)
-                {
-                    for (int j = 0; j < 4; j++)
-                    {
-                        m_Matrix[i, j + offsetPosition] = 0;
-                    }
-                }
-            }
-
-            for (int i = 0; i < l; i++)
-            {
-                for (int j = 0; j < l; j++)
-                {
-                    m_Matrix[i, j + offsetPosition] = block.m_BlockMatrix[i, j];
-                }
-            }
-
-        }
 
 
         void Start()
         {
-            InitMatrix();
-            FillMatrixWithGameblocks();
+            InitGame();
 
-            CreateBlock();
+            InstansBlock();
+
         }
 
         void Update()
         {
-            if (m_Timer > 0)
-            {
-                m_Timer -= Time.deltaTime * m_speed;
-            }
-            else
-            {
-                //MoveDown();
-                m_Timer = 10f;
-            }
+            m_counter += GlobalTimer();
 
-            if (Input.GetKeyDown(KeyCode.B)) CreateBlock();
+            //if (m_counter < 4) MoveBlockDown();
+            //else m_counter = 0;
 
-            if (Input.GetKeyDown(KeyCode.DownArrow)) for (int i = 0; i < 1; i++) MoveDown();
+            if (Input.GetKeyDown(KeyCode.R)) m_currentBlock.RotateBlock();
 
-            if (Input.GetKeyDown(KeyCode.RightArrow)) MoveRight();
-
-            if (Input.GetKeyDown(KeyCode.LeftArrow)) MoveLeft();
-
-            Draw();
         }
-
 
     }
 }
