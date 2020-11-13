@@ -2,6 +2,8 @@
 {
     enum E_BlockType
     {
-        O,J,L,I,S,Z,T,
+        I,J,L,O,S,T,Z,
     }
+
+    delegate float GetPoint_Delegat(int position);
 }

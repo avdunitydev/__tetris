@@ -5,38 +5,49 @@ namespace AVDTetris
 {
     static class BlocksFactory
     {
-        private static GameObject m_prefab;
+        static GameObject m_Prefab;
 
-        public static BaseBlock CreateBlock(GameObject prefab)
+        public static BaseBlock CreateBlock(E_BlockType blockType, GameObject elementPrefab)
         {
-            m_prefab = prefab;
-            return RandomBlock();
+            m_Prefab = elementPrefab;
+
+            return SelectBlock(blockType);
+
         }
 
-        private static BaseBlock RandomBlock()
+        public static BaseBlock RandomBlock(GameObject elementPrefab)
         {
+            m_Prefab = elementPrefab;
+
             int n = new System.Random().Next(Enum.GetValues(typeof(E_BlockType)).Length);
 
-            switch (n)
-            {
-                case 0:
-                    return new Block_I(m_prefab);
-                case 1:
-                    return new Block_J(m_prefab);
-                case 2:
-                    return new Block_L(m_prefab);
-                case 3:
-                    return new Block_O(m_prefab);
-                case 4:
-                    return new Block_S(m_prefab);
-                case 5:
-                    return new Block_T(m_prefab);
-                case 6:
-                    return new Block_Z(m_prefab);
-                default:
-                    return new Block_O(m_prefab);
-            }
+            return SelectBlock((E_BlockType)n);
 
         }
+
+        private static BaseBlock SelectBlock(E_BlockType blockType)
+        {
+            switch (blockType)
+            {
+                case (E_BlockType)0:
+                    return new Block_I(m_Prefab);
+                case (E_BlockType)1:
+                    return new Block_J(m_Prefab);
+                case (E_BlockType)2:
+                    return new Block_L(m_Prefab);
+                case (E_BlockType)3:
+                    return new Block_O(m_Prefab);
+                case (E_BlockType)4:
+                    return new Block_S(m_Prefab);
+                case (E_BlockType)5:
+                    return new Block_T(m_Prefab);
+                case (E_BlockType)6:
+                    return new Block_Z(m_Prefab);
+                default:
+                    return new Block_I(m_Prefab);
+            }
+        }
+
+
     }
 }

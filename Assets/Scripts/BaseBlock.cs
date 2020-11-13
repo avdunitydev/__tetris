@@ -6,48 +6,55 @@ namespace AVDTetris
 {
     abstract class BaseBlock : IBlock
     {
-        public const float BLOCK_SIZE = 1f;
+        public readonly float BLOCK_SIZE = 1f;
         public float AnchorX { get; private set; }
         public float AnchorY { get; private set; }
-        public int BlockWidth { get; private set; }
-        public int BlockHeight { get; private set; }
-        public Transform Parent { get; private set; }
-
-        private GameObject[,] m_Block;
-        private readonly GameObject prefab;
+        public int Width { get; private set; }
+        public int Height { get; private set; }
+        public int PositionX { get; private set; }
+        public int PositionY { get; private set; }
         public E_BlockType BlockType { get; private set; }
 
+
+        private readonly GameObject m_Prefab;
+
+        private GameObject[,] m_BlockMatrix;
+
+        public GetPoint_Delegat del_SetRealPosition_X;
+        public GetPoint_Delegat del_SetRealPosition_Y;
 
 
         public BaseBlock(E_BlockType blockType, GameObject prefab)
         {
             BlockType = blockType;
-            this.prefab = prefab;
+            m_Prefab = prefab;
+            InstantiateElements();
         }
 
         protected abstract int[,] GetProtoMatrix();
 
-        public void GetBlockPivot(out float x, out float y)
+        public void GetPivot(out float x, out float y)
         {
             x = AnchorX;
             y = AnchorY;
+
         }
 
-        public void GetBlockSize(out int width, out int height)
+        public void GetSize(out int width, out int height)
         {
-            width = BlockWidth;
-            height = BlockHeight;
+            width = Width;
+            height = Height;
         }
 
-        public void SetBlockPivot()
+        public void SetPivot()
         {
-            int l = m_Block.GetLength(0);
-            for (int i = 0; i < l; i++)
+            int l = m_BlockMatrix.GetLength(0);
+            for (int i = 0; i < l; ++i)
             {
                 int k = 0;
-                for (int j = 0; j < l; j++)
+                for (int j = 0; j < l; ++j)
                 {
-                    if (m_Block[j, i] != null) ++k;
+                    if (m_BlockMatrix[j, i] != null) ++k;
                 }
                 if (k != 0)
                 {
@@ -56,13 +63,12 @@ namespace AVDTetris
                 }
             }
 
-
-            for (int i = 0; i < m_Block.GetLength(0); i++)
+            for (int i = 0; i < l; ++i)
             {
                 int k = 0;
-                for (int j = 0; j < l; j++)
+                for (int j = 0; j < l; ++j)
                 {
-                    if (m_Block[i, j] != null) ++k;
+                    if (m_BlockMatrix[i, j] != null) ++k;
                 }
                 if (k != 0)
                 {
@@ -70,101 +76,167 @@ namespace AVDTetris
                     break;
                 }
             }
+            //Debug.Log($"ancX {AnchorX}, ancY {AnchorY}");
 
         }
 
-        public void SetBlockSize()
+        public void SetSize()
         {
-            int l = m_Block.GetLength(0);
-            BlockWidth = m_Block.GetLength(0);
+            int l = m_BlockMatrix.GetLength(0);
+            Width = m_BlockMatrix.GetLength(0);
 
             for (int i = 0; i < l; i++)
             {
                 int k = 0;
                 for (int j = 0; j < l; j++)
                 {
-                    if (m_Block[j, i] != null) ++k;
+                    if (m_BlockMatrix[j, i] != null) ++k;
                 }
                 if (k == 0)
                 {
-                    --BlockWidth;
+                    --Width;
                 }
             }
 
-            BlockHeight = m_Block.GetLength(0);
-            for (int i = 0; i < m_Block.GetLength(0); i++)
+            Height = m_BlockMatrix.GetLength(0);
+            for (int i = 0; i < m_BlockMatrix.GetLength(0); i++)
             {
                 int k = 0;
                 for (int j = 0; j < l; j++)
                 {
-                    if (m_Block[i, j] != null) ++k;
+                    if (m_BlockMatrix[i, j] != null) ++k;
                 }
                 if (k == 0)
                 {
-                    --BlockHeight;
+                    --Height;
                 }
             }
 
+
         }
 
-        private void InstansElements(Transform parent)
+        public void SetPosition(int x, int y)
         {
-            int[,] matrix = GetProtoMatrix();
-            int l = matrix.GetLength(0);
-            m_Block = new GameObject[l, l];
+            PositionX = x;
+            PositionY = y;
 
+            RefreshUI();
+        }
+
+        public void ShowNextBlock(Transform showPoint)
+        {
+            int l = m_BlockMatrix.GetLength(0);
             for (int i = 0; i < l; ++i)
             {
                 for (int j = 0; j < l; ++j)
                 {
-                    if (matrix[i, j] == 1)
+                    if (m_BlockMatrix[i, j])
                     {
-                        m_Block[i, j] = GameObject.Instantiate(prefab, new Vector3(j * BLOCK_SIZE, i * BLOCK_SIZE, 0), Quaternion.identity, parent);
+                        m_BlockMatrix[i, j].transform.position = new Vector3(showPoint.position.x + j, (showPoint.position.y - i), 0);
+                        m_BlockMatrix[i, j].GetComponent<SpriteRenderer>().enabled = true;
+                    }
+                }
+            }
+        }
+
+        private void RefreshUI()
+        {
+            if (del_SetRealPosition_X == null) { Debug.Log("ERROR : GetPoint_Delegat del_SetRealPosition_X>>> Is't defined !!!"); return; }
+            if (del_SetRealPosition_Y == null) { Debug.Log("ERROR : GetPoint_Delegat del_SetRealPosition_Y>>> Is't defined !!!"); return; }
+
+            int l = m_BlockMatrix.GetLength(0);
+            for (int i = 0; i < l; ++i)
+            {
+                for (int j = 0; j < l; ++j)
+                {
+                    if (m_BlockMatrix[i, j])
+                    {
+                        float x = del_SetRealPosition_X.Invoke(PositionX + j);
+                        float y = del_SetRealPosition_Y.Invoke(PositionY + i);
+
+                        m_BlockMatrix[i, j].transform.position = new Vector3(x, y, 0);
+
+                        m_BlockMatrix[i, j].GetComponent<SpriteRenderer>().enabled = true;
                     }
                 }
             }
 
-            SetBlockPivot();
-            SetBlockSize();
-            Debug.Log($"AnchorX: {AnchorX}, AnchorY: {AnchorY}, BlockWidth: {BlockWidth}, BlockHeight: {BlockHeight}");
-
         }
+
+        private void InstantiateElements()
+        {
+            if (m_BlockMatrix == null)
+            {
+                int[,] matrix = GetProtoMatrix();
+                int l = matrix.GetLength(0);
+
+                m_BlockMatrix = new GameObject[l, l];
+
+                for (int i = 0; i < l; ++i)
+                {
+                    for (int j = 0; j < l; ++j)
+                    {
+                        if (matrix[i, j] == 1)
+                        { m_BlockMatrix[i, j] = GameObject.Instantiate(m_Prefab); }
+                    }
+                }
+
+                SetPivot();
+                SetSize();
+            }
+        }
+
+        public GameObject[,] GetBlock() => m_BlockMatrix;
 
         public void RotateBlock()
         {
-            int l = m_Block.GetLength(0);
-            GameObject[,] temp = new GameObject[l, l];
+            m_BlockMatrix = GetRotatedBlock();
+
+            SetPivot();
+            SetSize();
+
+            RefreshUI();
+
+        }
+
+        public GameObject[,] GetRotatedBlock()
+        {
+            int l = m_BlockMatrix.GetLength(0);
+            GameObject[,] rotatedBlock = new GameObject[l, l];
 
             for (int i = 0; i < l; ++i)
             {
                 for (int j = 0; j < l; ++j)
                 {
-                    temp[i, j] = m_Block[l - j - 1, i];
-                    if(m_Block[i, j] != null) m_Block[i, j].transform.localPosition = new Vector3(l - j - 1, i, 0);
+                    rotatedBlock[i, j] = m_BlockMatrix[l - j - 1, i];
                 }
             }
 
-            m_Block = temp;
-
-            SetBlockPivot();
-            SetBlockSize();
-            Debug.Log($"AnchorX: {AnchorX}, AnchorY: {AnchorY}, BlockWidth: {BlockWidth}, BlockHeight: {BlockHeight}");
-
-
-
+            return rotatedBlock;
         }
 
-        public GameObject[,] GetBlock()
+        #region Moving Block
+        public void MoveRight()
         {
-            if (m_Block == null)
-            {
-                if (Parent == null) Debug.Log("Property Parent is Null. Set the Parent property.");
-                InstansElements(Parent);
-            }
-            return m_Block;
+            SetPosition(++PositionX, PositionY);
+            //Debug.Log($"PositionX: {PositionX}");
         }
 
-        public void SetBlockParent(Transform parent) => Parent = parent;
+        public void MoveLeft()
+        {
+            SetPosition(--PositionX, PositionY);
+            //Debug.Log($"PositionX: {PositionX}");
+
+        }
+
+        public void MoveDown()
+        {
+            SetPosition(PositionX, ++PositionY);
+            //Debug.Log($"PositionY: {PositionY}");
+
+        }
+
+        #endregion
 
 
     }
